@@ -1,9 +1,8 @@
-import 'pokemon_model.dart'; // Importa o modelo de Pokémon
-
+import 'pokemon_model.dart';
 
 class PokemonListModel {
-  final int count; 
-  final String next; 
+  final int count;
+  final String next;
   final String? previous;
   final List<Pokemon> results;
 
@@ -14,10 +13,11 @@ class PokemonListModel {
     required this.results,
   });
 
-  /// Converte um mapa (JSON) em um objeto PokemonListModel.
+  // Converte um mapa (JSON) em um objeto PokemonListModel.
   factory PokemonListModel.fromMap(Map<String, dynamic> map) {
     var resultsList = map['results'] as List;
-    List<Pokemon> pokemonList = resultsList.map((json) => Pokemon.fromMap(json)).toList();
+    List<Pokemon> pokemonList =
+        resultsList.map((json) => Pokemon.fromMap(json)).toList();
 
     return PokemonListModel(
       count: map['count'] as int,

@@ -2,10 +2,49 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:poke_dex/models/pokemon_list_model.dart';
 import 'package:poke_dex/models/pokemon_model.dart';
-import 'pokemon_detail_page.dart'; // Importe a nova página
+import 'pokemon_detail_page.dart';
 
-class PokeHomePage extends StatelessWidget {
+class PokeHomePage extends StatefulWidget {
   const PokeHomePage({super.key});
+
+  @override
+  _PokeHomePageState createState() => _PokeHomePageState();
+}
+
+class _PokeHomePageState extends State<PokeHomePage> {
+  List<Pokemon> _pokemonList = [];
+  List<Pokemon> _filteredPokemonList = [];
+  final TextEditingController _searchController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchPokemons();
+  }
+
+  Future<void> _fetchPokemons() async {
+    final dio = Dio();
+    try {
+      final response = await dio
+          .get('https://pokeapi.co/api/v2/pokemon?limit=1000&offset=0');
+      var model = PokemonListModel.fromMap(response.data);
+      setState(() {
+        _pokemonList = model.results;
+        _filteredPokemonList = _pokemonList;
+      });
+    } catch (e) {
+      throw Exception("Erro ao carregar Pokémon: $e");
+    }
+  }
+
+  void _filterPokemons(String query) {
+    setState(() {
+      _filteredPokemonList = _pokemonList
+          .where((pokemon) =>
+              pokemon.name.toLowerCase().contains(query.toLowerCase()))
+          .toList();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,39 +52,30 @@ class PokeHomePage extends StatelessWidget {
       appBar: AppBar(
         title: const Text("Pokedex"),
       ),
-      body: _buildBody(),
+      body: Column(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _searchController,
+              decoration: const InputDecoration(
+                labelText: 'Buscar Pokémon',
+                prefixIcon: Icon(Icons.search),
+                border: OutlineInputBorder(),
+              ),
+              onChanged: _filterPokemons,
+            ),
+          ),
+          Expanded(child: _buildBody()),
+        ],
+      ),
     );
-  }
-
-  Future<List<Pokemon>> _fetchPokemons() async {
-    final dio = Dio();
-    try {
-      final response =
-          await dio.get('https://pokeapi.co/api/v2/pokemon?limit=100&offset=0');
-      var model = PokemonListModel.fromMap(response.data);
-      await Future.delayed(
-          const Duration(seconds: 2)); // Simula um delay para teste
-      return model.results;
-    } catch (e) {
-      throw Exception("Erro ao carregar Pokémon: $e");
-    }
   }
 
   Widget _buildBody() {
-    return FutureBuilder<List<Pokemon>>(
-      future: _fetchPokemons(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return _buildLoadingIndicator();
-        } else if (snapshot.hasError) {
-          return _buildErrorWidget(snapshot.error.toString());
-        } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return _buildEmptyWidget();
-        } else {
-          return _buildPokemonList(snapshot.data!);
-        }
-      },
-    );
+    return _filteredPokemonList.isEmpty
+        ? _buildLoadingIndicator()
+        : _buildPokemonList(_filteredPokemonList);
   }
 
   Widget _buildLoadingIndicator() {
@@ -81,7 +111,7 @@ class PokeHomePage extends StatelessWidget {
 
   Widget _buildPokemonListItem(Pokemon pokemon, BuildContext context) {
     return ListTile(
-      leading: const Icon(Icons.catching_pokemon_rounded),
+      leading: const Icon(Icons.catching_pokemon),
       title: Text(
         pokemon.name,
         style: const TextStyle(fontWeight: FontWeight.bold),
